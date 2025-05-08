@@ -38,6 +38,6 @@ Use section headings: "About the Job", "Required Skills", and "Featured Benefits
         return {"job_description": response.text}
 
     except Exception as e:
-        print("❌ Gemini error:", str(e))
+        print("Gemini error:", str(e))
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Gemini API failed. See server logs.")
