@@ -28,7 +28,15 @@ Follow this structure precisely:
    - Start with a 2–3 sentence overview of the role, including the team or department context.
    - Then include this custom note: "{data.custom_note}"
    - Highlight key responsibilities, tools, or impact areas in 3–5 bullet points.
+1. **About the Job**
+   - Start with a 2–3 sentence overview of the role, including the team or department context.
+   - Then include this custom note: "{data.custom_note}"
+   - Highlight key responsibilities, tools, or impact areas in 3–5 bullet points.
 
+2. **Required Skills**
+   - List 10–12 specific technical and soft skills related to **{data.key_focus}**.
+   - Include tools, technologies, methodologies, and relevant interpersonal skills.
+   - Use bullet points for clarity.
 2. **Required Skills**
    - List 10–12 specific technical and soft skills related to **{data.key_focus}**.
    - Include tools, technologies, methodologies, and relevant interpersonal skills.
