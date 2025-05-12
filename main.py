@@ -21,11 +21,18 @@ async def generate_job_description(data: JobInput):
     try:
         # Construct the prompt with all inputs
         prompt = f"""
-Generate a detailed and professional job description for a **{data.job_title}** role. Follow this exact structure and include realistic and specific content:
+Generate a detailed and professional job description for a **{data.job_title}** role at a U.S.-based tech company. Use a tone that is clear, structured, and appealing to experienced professionals, Do not add skills that are not mentioned.
+Follow this structure precisely:
 
-1. **About the Job** section: Include this note – "{data.custom_note}".
+1. **About the Job**
+   - Start with a 2–3 sentence overview of the role, including the team or department context.
+   - Then include this custom note: "{data.custom_note}"
+   - Highlight key responsibilities, tools, or impact areas in 3–5 bullet points.
 
-2. **Required Skills** section: Include 10–12 highly specific technical and soft skills related to {data.key_focus}. Use bullet points and mention tools, technologies, or techniques where appropriate.
+2. **Required Skills**
+   - List 10–12 specific technical and soft skills related to **{data.key_focus}**.
+   - Include tools, technologies, methodologies, and relevant interpersonal skills.
+   - Use bullet points for clarity.
 
 3. **Featured Benefits** section: Include the following benefits as bullet points:
 {data.benefits}
