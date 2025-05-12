@@ -2,6 +2,17 @@ import traceback
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import google.generativeai as genai
+from dotenv import load_dotenv
+import os
+from supabase import create_client, Client
+
+# Load variables from .env
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Configure Gemini
 genai.configure(api_key="AIzaSyArNjAreog5Ls4S-O2X9OZk7EYoHstqP1Q")  # Replace with your actual API key
@@ -25,7 +36,7 @@ Generate a detailed and professional job description for a **{data.job_title}** 
 Follow this structure precisely:
 
 1. **About the Job**
-   - Start with a 2–3 sentence overview of the role, including the team or department context.
+   - Start with a 2-3 sentence overview of the role, including the team or department context.
    - Then include this custom note: "{data.custom_note}"
    - Highlight key responsibilities, tools, or impact areas in 3–5 bullet points.
 1. **About the Job**
@@ -50,6 +61,18 @@ Use section headings: "About the Job", "Required Skills", and "Featured Benefits
 
         # Generate job description using Gemini
         response = model.generate_content(prompt)
+        job_description = response.text
+
+        # ✅ Insert only the description into Supabase table
+        supabase.table("job_description_duplicate").insert({
+        "description": job_description,
+        "job_title": data.job_title,
+        "custom_note": data.custom_note,
+        "key_focus": data.key_focus,
+        "benefits": data.benefits
+        }).execute()
+
+
         return {"job_description": response.text}
 
     except Exception as e:
