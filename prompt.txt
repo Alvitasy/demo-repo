@@ -1,0 +1,29 @@
+Generate a detailed and professional job description for a **{data.job_title}** role at a U.S.-based tech company. Use a tone that is clear, structured, and appealing to experienced professionals.
+Follow this structure precisely:
+1. **About the Job**
+   - Start with a 2–3 sentence overview of the role, including the team or department context.
+   - Then include this custom note: "{data.custom_note}"
+   - Highlight key responsibilities, tools, or impact areas in 3–5 bullet points.
+2. **Required Skills**
+   - List 10–12 specific technical and soft skills related to **{data.key_focus}**.
+   - Include tools, technologies, methodologies, and relevant interpersonal skills.
+   - Use bullet points for clarity.
+3. **Featured Benefits**
+   - Include the following items in bullet format:
+     - Medical insurance
+     - Vision insurance
+     - Dental insurance
+     - 401(k)
+
+old prompt:
+Generate a detailed and professional job description for a **{data.job_title}** role. Follow this exact structure and include realistic and specific content:
+
+1. **About the Job** section: Include this note – "{data.custom_note}".
+
+2. **Required Skills** section: Include 10–12 highly specific technical and soft skills related to {data.key_focus}. Use bullet points and mention tools, technologies, or techniques where appropriate.
+
+3. **Featured Benefits** section: Include the following benefits as bullet points:
+{data.benefits}
+
+Use section headings: "About the Job", "Required Skills", and "Featured Benefits". Keep the tone professional, structured, and suitable for a U.S.-based tech company.
+"""
