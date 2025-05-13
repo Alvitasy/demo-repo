@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import google.generativeai as genai
 from dotenv import load_dotenv
 import os
+from datetime import datetime
 from supabase import create_client, Client
 
 # Load variables from .env
@@ -28,6 +29,7 @@ class JobInput(BaseModel):
     benefits: str
 
 class PostJobInput(JobInput):
+    job_id: str
     description: str
 
 # --- Endpoint: Generate Job Description ---
@@ -53,7 +55,6 @@ Generate a detailed and professional job description for a **{data.job_title}** 
 
 Use section headings: "About the Job", "Required Skills", and "Featured Benefits".
 """
-
         response = model.generate_content(prompt)
         return {"job_description": response.text}
 
@@ -66,15 +67,29 @@ Use section headings: "About the Job", "Required Skills", and "Featured Benefits
 @app.post("/post-job-description")
 async def post_job_description(data: PostJobInput):
     try:
-        supabase.table("job_description_duplicate").insert({
+        supabase.table("job_description").insert({
+            "job_id": data.job_id,
             "description": data.description,
             "job_title": data.job_title,
             "custom_note": data.custom_note,
             "key_focus": data.key_focus,
-            "benefits": data.benefits
+            "benefits": data.benefits,
+            "date_posted": datetime.utcnow().strftime("%Y-%m-%d")  # ✅ New line
         }).execute()
         return {"status": "success"}
     except Exception as e:
-        print("❌ Supabase insert error:", str(e))
+        print("Supabase insert error:", str(e))
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Failed to save to Supabase")
+@app.get("/jobs")
+async def get_job_listings():
+    try:
+        response = supabase.table("job_description") \
+            .select("job_id, job_code, job_title, date_posted, description") \
+            .order("date_posted", desc=True) \
+            .execute()
+        return response.data
+    except Exception as e:
+        print("❌ Error fetching jobs:", str(e))
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Failed to retrieve job listings")
