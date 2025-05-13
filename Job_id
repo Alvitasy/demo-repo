@@ -1,14 +1,82 @@
+import traceback
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import google.generativeai as genai
+from dotenv import load_dotenv
+import os
+from supabase import create_client, Client
+# Load environment variables
+load_dotenv()
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+# Initialize Supabase client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Configure Gemini
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+app = FastAPI()
+# Input model for generating the job description
+class JobInput(BaseModel):
+    job_title: str
+    custom_note: str
+    key_focus: str
+    benefits: str
+# Input model for posting to Supabase (includes job_id and generated description)
+class PostJobInput(JobInput):
+    job_id: str
+    description: str
+# --- Endpoint: Generate Job Description ---
+@app.post("/generate-job-description")
+async def generate_job_description(data: JobInput):
+    try:
+        prompt = f"""
+Generate a detailed and professional job description for a **{data.job_title}** role at a U.S.-based tech company. Use a tone that is clear, structured, and appealing to experienced professionals.
+1. **About the Job**
+   - Start with a 2–3 sentence overview of the role, including the team or department context.
+   - Then include this custom note: "{data.custom_note}"
+   - Highlight key responsibilities, tools, or impact areas in 3–5 bullet points.
+2. **Required Skills**
+   - List 10–12 specific technical and soft skills related to **{data.key_focus}**.
+   - Include tools, technologies, methodologies, and relevant interpersonal skills.
+   - Use bullet points for clarity.
+3. **Featured Benefits**
+   - Include the following benefits as bullet points:
+{data.benefits}
+Use section headings: "About the Job", "Required Skills", and "Featured Benefits".
+"""
+        response = model.generate_content(prompt)
+        return {"job_description": response.text}
+    except Exception as e:
+        print(":x: Gemini error:", str(e))
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Gemini API failed. See server logs.")
+# --- Endpoint: Save Job Description to Supabase ---
+@app.post("/post-job-description")
+async def post_job_description(data: PostJobInput):
+    try:
+        supabase.table("job_description_duplicate").insert({
+            "job_id": data.job_id,
+            "job_title": data.job_title,
+            "custom_note": data.custom_note,
+            "key_focus": data.key_focus,
+            "benefits": data.benefits,
+            "description": data.description
+        }).execute()
+        return {"status": "success"}
+    except Exception as e:
+        print(":x: Supabase insert error:", str(e))
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Failed to save to Supabase.")
+
 import streamlit as st
 import requests
 import streamlit.components.v1 as components
-import random, uuid
+import random
 import string
-
 st.set_page_config(page_title="Athena.7t Careers", layout="wide")
-
 # --- Header with Logo and Buttons ---
 components.html("""
-<div style="background-color: #6492cd; width: 100%; padding: 40px 40px 30px 40px; box-sizing: border-box;">
+<div style="background-color: #6492CD; width: 100%; padding: 40px 40px 30px 40px; box-sizing: border-box;">
   <div style="display: flex; justify-content: space-between; align-items: center;">
     <div style="flex: 1; display: flex; align-items: center;">
       <img src="https://raw.githubusercontent.com/alvitasy/demo-repo/main/seven_tablets_logo.jpeg"
@@ -20,19 +88,17 @@ components.html("""
     </div>
     <div style="flex: 1; display: flex; justify-content: flex-end;">
       <button style="padding: 10px 20px; margin-right: 10px;
-                     background-color: white; color: #2596be;
+                     background-color: white; color: #2596BE;
                      border: none; border-radius: 5px;">Home</button>
       <button style="padding: 10px 20px;
-                     background-color: white; color: #2596be;
+                     background-color: white; color: #2596BE;
                      border: none; border-radius: 5px;">Login</button>
     </div>
   </div>
 </div>
 """, height=240)
-
 st.markdown("<div style='margin-top: -60px;'></div>", unsafe_allow_html=True)
-
-# --- Initialize session state ---
+# --- Session State Init ---
 if "generated_description" not in st.session_state:
     st.session_state.generated_description = ""
 if "posted" not in st.session_state:
@@ -44,9 +110,8 @@ def generate_job_id():
     number = random.randint(100, 999)
     letters = ''.join(random.choices(string.ascii_lowercase, k=3))
     return f"j{number}{letters}"
-# --- Job Form Section ---
+# --- Job Form ---
 st.markdown("### Post a Job", unsafe_allow_html=True)
-
 with st.form("job_form", clear_on_submit=False):
     col1, col2 = st.columns(2)
     with col1:
@@ -54,7 +119,6 @@ with st.form("job_form", clear_on_submit=False):
         custom_note = st.text_input("Custom Note (e.g., US Citizens only)")
     with col2:
         key_focus = st.text_area("Key Skills (comma-separated, e.g., Python, ML, SQL)")
-
     st.markdown("#### Select Benefits")
     predefined_benefits = [
         "Medical Insurance", "Vision Insurance", "Dental Insurance",
@@ -63,14 +127,11 @@ with st.form("job_form", clear_on_submit=False):
     selected_benefits = st.multiselect("Select any predefined benefits:", predefined_benefits)
     custom_benefits = st.text_input("Add custom benefits (comma-separated):",
                                     placeholder="e.g., Stock options, Pet insurance")
-
     all_benefits = selected_benefits.copy()
     if custom_benefits:
         all_benefits.extend([b.strip() for b in custom_benefits.split(",") if b.strip()])
     benefits = ", ".join(all_benefits)
-
     submitted = st.form_submit_button("Generate Job Description")
-
     if submitted:
         if not job_title or not custom_note or not key_focus or not benefits:
             st.warning("Please fill in all fields before posting.")
@@ -95,25 +156,23 @@ with st.form("job_form", clear_on_submit=False):
                         st.error("Backend failed to generate.")
                 except Exception as e:
                     st.error(f"Request failed: {e}")
-
-# --- Display Description & Post Button ---
+# --- Display & Post ---
 if st.session_state.generated_description:
     st.markdown("---")
     st.subheader("Job Description Output")
     st.markdown(st.session_state.generated_description)
-
     if not st.session_state.posted:
-        if st.button("Post"):
+        if st.button("Post to Supabase"):
             try:
                 post_response = requests.post(
                     "http://127.0.0.1:8000/post-job-description",
                     json={
-                    "job_id": st.session_state.job_id,
-                    "description": st.session_state.generated_description,
-                    "job_title": job_title,
-                    "custom_note": custom_note,
-                    "key_focus": key_focus,
-                    "benefits": benefits
+                        "job_id": st.session_state.job_id,
+                        "description": st.session_state.generated_description,
+                        "job_title": job_title,
+                        "custom_note": custom_note,
+                        "key_focus": key_focus,
+                        "benefits": benefits
                     }
                 )
                 if post_response.status_code == 200:
