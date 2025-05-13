@@ -66,7 +66,7 @@ Use section headings: "About the Job", "Required Skills", and "Featured Benefits
 @app.post("/post-job-description")
 async def post_job_description(data: PostJobInput):
     try:
-        supabase.table("job_description_duplicate").insert({
+        supabase.table("job_description").insert({
             "description": data.description,
             "job_title": data.job_title,
             "custom_note": data.custom_note,
@@ -75,6 +75,6 @@ async def post_job_description(data: PostJobInput):
         }).execute()
         return {"status": "success"}
     except Exception as e:
-        print("❌ Supabase insert error:", str(e))
+        print("Supabase insert error:", str(e))
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Failed to save to Supabase")
